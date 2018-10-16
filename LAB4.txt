@@ -1,0 +1,489 @@
+1.
+declare
+  dept_no number(10):=&deptno;
+depcode number;
+  msal number(7,2);
+ i number:=0;
+  CURSOR high is Select Dept_code,Max(Staff_sal) FROM Staff_masters GROUP BY Dept_code ;
+
+ begin
+  open high;
+ 
+ LOOP
+   FETCH high into depcode,msal; 
+ IF high%NOTFOUND
+  THEN 
+EXIT;
+END IF;
+
+
+
+IF (depcode=dept_no)
+ THEN
+i:=1;
+
+dbms_output.put_line('Maximum Salary:  '||msal);
+
+
+ELSE
+CONTINUE;
+END IF;
+END LOOP;
+CLOSE high;
+ IF (i=0)
+ THEN
+ dbms_output.put_line('Wrong Department Code');
+ END IF;
+END;
+/
+Enter value for deptno: 20
+old   2:   dept_no number(10):=&deptno;
+new   2:   dept_no number(10):=20;
+Maximum Salary:  62000
+
+PL/SQL procedure successfully completed.
+
+Enter value for deptno: 49
+old   2:   dept_no number(10):=&deptno;
+new   2:   dept_no number(10):=49;
+Wrong Department Code
+
+PL/SQL procedure successfully completed.
+------------------------------------------------------
+2.
+Create or replace function age1(v_dob in date)
+  return number                   
+is  
+v_your_age  NUMBER;
+
+BEGIN
+v_your_age := ROUND((SYSDATE - v_dob)/365);
+  return v_your_age ;
+END;
+/
+Function created.
+
+SQL> select age1('27-MAY-76') from dual;
+
+AGE1('27-MAY-76')
+-----------------
+               42
+
+------------------------------------------------------
+3.
+CREATE OR REPLACE PROCEDURE staff(id IN NUMBER)
+IS
+BEGIN
+UPDATE Staff_masters SET Staff_name=UPPER(Staff_name) WHERE Staff_code = id;
+END;
+/
+
+DECLARE
+stcode number:= &stc;
+myex   EXCEPTION;
+
+BEGIN
+staff(stcode);
+IF (sql%rowcount=0)
+THEN
+RAISE myex;
+END IF;
+
+EXCEPTION
+    WHEN myex THEN
+        dbms_output.put_line('Wrong staff_code');
+
+END;
+/ 
+
+SELECT staff_code,staff_name from Staff_masters;
+
+
+
+
+Procedure created.
+
+Enter value for stc: 19843
+old   2: stcode number:= &stc;
+new   2: stcode number:= 19843;
+Wrong staff_code
+
+PL/SQL procedure successfully completed.
+
+
+STAFF_CODE STAFF_NAME
+---------- --------------------------------------------------
+    100001 ARVIND
+    100002 Shyam
+    100003 Mohan
+    100004 Anil
+    100005 John
+    100006 Allen
+    100007 Smith
+    100008 Raviraj
+    100009 Rahul
+    100010 Ram
+
+10 rows selected.
+
+Procedure created.
+
+Enter value for stc: 100005
+old   2: stcode number:= &stc;
+new   2: stcode number:= 100005;
+
+PL/SQL procedure successfully completed.
+
+
+STAFF_CODE STAFF_NAME
+---------- --------------------------------------------------
+    100001 ARVIND
+    100002 Shyam
+    100003 Mohan
+    100004 Anil
+    100005 JOHN
+    100006 Allen
+    100007 Smith
+    100008 Raviraj
+    100009 Rahul
+    100010 Ram
+
+10 rows selected.
+
+
+
+-----------------------------------------------------------------
+4.
+create or replace procedure findMGR
+(
+SNo in staff_masters.staff_code%type,
+SId out staff_masters.staff_code%type,
+SName out staff_masters.staff_name%type,
+DCode out staff_masters.dept_code%type,
+MName out staff_masters.staff_name%type
+)
+as 
+BEGIN
+    select a.staff_code,a.staff_name,a.dept_code,b.staff_name as manager into SId,SName,DCode,MName 
+    from  staff_masters a,staff_masters b 
+    where a.mgr_code=b.staff_code and a.staff_code = SNo;
+if(sql%notfound) then
+        dbms_output.put_line('staff code not found');
+      end if; 
+END;
+/
+
+DECLARE
+stcode number:=&stc;
+
+name varchar2(60);
+dcode number;
+mname varchar2(60);
+no_da_found EXCEPTION;
+
+BEGIN
+
+
+    
+end;
+/
+findMGR(stcode,stcode,name,dcode,mname);  
+dbms_output.put_line(stcode||'  '||name||'  '||dcode||'  '||mname);
+
+Enter value for stc: 100007
+old   2: stcode number:=&stc;
+new   2: stcode number:=100007;
+100007  Smith  20  John
+
+PL/SQL procedure successfully completed.
+-----------------------------------------------------------------------
+5.
+create or replace function CostToComp(code in number) return number
+is
+    sal staff_masters.staff_sal%type;
+    exp number;
+BEGIN
+    select staff_sal,round(months_between(sysdate,hiredate)/12) as EXP into sal, exp from staff_masters where staff_code=code;
+    if exp>4 then
+    sal:=sal+ (0.3*sal)+(0.15*sal)+(0.2*sal)+(0.08*sal);
+    elsif exp between 2 and 4 then
+    sal:=sal+ (0.2*sal)+(0.15*sal)+(0.2*sal)+(0.08*sal);
+    elsif exp between 1 and 2 then
+    sal:=sal+ (0.1*sal)+(0.15*sal)+(0.2*sal)+(0.08*sal);
+    else 
+    sal:=sal+(0.15*sal)+(0.2*sal)+(0.08*sal);
+    end if;
+    return sal;
+end;
+
+DECLARE 
+    CALC_SAL NUMBER;
+BEGIN
+    CALC_SAL:=CostToComp(&staff_code);
+    dbms_output.put_line(CALC_SAL);
+END;
+------------------------------------------------------------------------
+6.
+create or replace procedure staff_info
+as
+    s_name staff_masters.staff_name%type;
+    d_name department_masters.dept_name%type;
+    d_des designation_masters.design_name%type;
+    s_sal staff_masters.staff_sal%type;
+    stat VARCHAR2(10);
+CURSOR STAFF IS
+    select s.staff_name,d.dept_name,ds.design_name,s.staff_sal,
+    CASE
+        WHEN S.STAFF_SAL>(SELECT AVG(STAFF_SAL) FROM STAFF_MASTERS) THEN 'GREATER'
+        WHEN S.STAFF_SAL<(SELECT AVG(STAFF_SAL) FROM STAFF_MASTERS) THEN 'LESSER'
+        ELSE 'EQUAL'
+    END
+    FROM STAFF_MASTERS S JOIN DEPARTMENT_MASTERS D ON S.DEPT_CODE=D.DEPT_CODE
+    JOIN DESIGNATION_MASTERS DS ON S.DESIGN_CODE=DS.DESIGN_CODE;
+ 
+BEGIN
+    IF NOT STAFF%ISOPEN THEN
+        OPEN STAFF;
+    END IF;
+    LOOP
+        FETCH STAFF INTO s_name, d_name, d_des, s_sal, stat;
+        exit when staff%notfound;
+        dbms_output.put_line(s_name || ' ' || d_name || ' ' || d_des || ' ' || s_sal || ' ' || stat);
+    end loop;
+    close STAFF;
+	EXCEPTION 
+		WHEN others then
+			DBMS_OUTPUT.PUT_LINE('sorry no records found!!');
+end;
+
+---------------------------------------------------------------------------------------
+
+4.7. Write a procedure that accept Staff_Code and update the salary and store the old
+salary details in Staff_Master_Back (Staff_Master_Back has the same structure without
+any constraint) table.
+Exp < 2 then no Update
+Exp > 2 and < 5 then 20% of salary
+Exp > 5 then 25% of salary
+
+CREATE TABLE STAFF_MASTERS_BACK AS(SELECT * FROM STAFF_MASTERS);
+TRUNCATE TABLE STAFF_MASTERS_BACK;
+ 
+create or replace procedure staff_backup(s_code in staff_masters.staff_code%type)
+    is
+    exp number;
+    v_sal staff_masters.staff_sal%type;
+BEGIN
+    insert into staff_masters_back(select * from staff_masters where staff_code=s_code);
+    select staff_sal, round(months_between(sysdate,hiredate)/12) 
+	into v_sal, exp from staff_masters where staff_code=s_code;
+ 
+    if v_sal IS NULL THEN
+	RAISE NO_DATA_FOUND;
+ 
+    if exp>5 then
+    	v_sal := (1.25 * v_sal);
+    end if;
+    if exp between 2 and 5 then
+    	v_sal:= (1.20 * v_sal);
+    end if;
+    update staff_masters set staff_sal=v_sal;
+	EXCEPTION
+		WHEN NO_DATA_FOUND THEN
+			DBMS_OUTPUT.PUT_LINE("NO DATA FOUND! PLS VERIFY");
+end;
+ 
+show error;
+execute staff_backup(100007);
+
+4.8. Create a procedure that accepts the book code as parameter from the user. Display
+the details of the students/staff that have borrowed that book and has not returned the
+same. The following details should be displayed
+Student/Staff Code Student/Staff Name Issue Date Designation Expected Ret_Date
+
+create or replace procedure report
+as
+  bcode book_transactions.book_code%type:=&enter;
+  code  number;
+  name1 varchar2(100);
+  idate book_transactions.book_issue_date%type;
+  dname  designation_masters.design_name%type;
+  rdate  book_transactions.book_expected_return_date%type;
+  excep exception;
+ 
+cursor mycur1 is
+    select s.staff_code,s.staff_name,b.book_issue_date,d.design_name,b.book_expected_return_date 
+    from staff_masters s, book_transactions b, designation_masters d 
+    where b.staff_code=s.staff_code and s.design_code=d.design_code 
+    and s.staff_code in (select nvl(staff_code,student_code) from book_transactions 
+    where book_code=bcode and book_actual_return_date is null); 
+ 
+  cursor mycur2 is
+    select s.student_code,s.student_name,b.book_issue_date,b.book_expected_return_date 
+    from student_masterss s, book_transactions b 
+    where b.student_code=s.student_code 
+    and s.student_code in (select nvl(staff_code,student_code) from book_transactions 
+    where book_code=bcode and book_actual_return_date is null); 
+BEGIN
+  IF NOT mycur1%ISOPEN THEN
+    OPEN mycur1;
+  END IF;
+ 
+  IF NOT mycur2%ISOPEN THEN
+    OPEN mycur2;
+  END IF;
+ 
+LOOP
+    FETCH mycur1 into code,name1,idate,dname,rdate;
+      IF (mycur1%notfound and mycur1%rowcount=0)then
+        FETCH mycur2 into code,name1,idate,rdate;
+ 
+        IF(mycur2%notfound and mycur2%rowcount=0)then
+          RAISE excep;
+        ELSE
+          EXIT WHEN mycur2%NOTFOUND;
+          dbms_output.put_line(code||' '||name1||' '||idate||' '||dname||' '||rdate);
+        END IF;
+    ELSE
+      EXIT WHEN mycur1%NOTFOUND; 
+      dbms_output.put_line(code||' '||name1||' '||idate||' '||dname||' '||rdate);
+    END IF;
+  END LOOP; 
+CLOSE mycur2;
+  CLOSE mycur1;
+ 
+  EXCEPTION
+    WHEN excep then
+    dbms_output.put_line('everyone refunded');
+END; 
+
+4.9. Write a package which will contain a procedure and a function.
+Function: This function will return years of experience for a staff. This function will take
+the hiredate of the staff as an input parameter. The output will be rounded to the nearest
+year (1.4 year will be considered as 1 year and 1.5 year will be considered as 2 year).
+Procedure: Capture the value returned by the above function to calculate the additional
+allowance for the staff based on the experience.
+Additional Allowance = Year of experience x 3000
+Calculate the additional allowance and store Staff_Code, Date of Joining, and Experience
+in years and additional allowance in Staff_Allowance table.
+
+CREATE OR REPLACE PACKAGE staffpack
+AS
+exp NUMBER;
+FUNCTION calc_exp(hdate date) RETURN NUMBER;
+PROCEDURE calc_al(years IN NUMBER,allowance OUT NUMBER);
+END staffpack;
+ 
+CREATE OR REPLACE PACKAGE BODY staffpack AS
+ 
+FUNCTION calc_exp(hdate date) RETURN NUMBER IS
+  BEGIN 
+     exp:=ROUND(MONTHS_BETWEEN(sysdate,hdate)/12); 
+     RETURN exp;
+  END calc_exp;
+ 
+PROCEDURE calc_al
+(years IN NUMBER,allowance OUT NUMBER) IS
+BEGIN
+    allowance:=years*3000;
+END calc_al;
+END staffpack;
+ 
+DECLARE
+    hdate date; 
+    exp_yrs NUMBER(15);
+    tot_al NUMBER(20);
+    scode staff_masters.staff_code%TYPE:=&code;
+BEGIN
+    SELECT hiredate INTO hdate
+    FROM staff_masters WHERE staff_code=scode;
+    exp_yrs:=staffpack.calc_exp(hdate);
+    staffpack.calc_al(exp_yrs,tot_al);
+  INSERT INTO staff_allowance(s_code, date_of_joining,experience, allowance)
+    VALUES(scode,hdate,exp_yrs,tot_al);  
+ 
+END;
+/   
+create table staff_allowance(s_code number, date_of_joining date, 
+experience number, allowance number);
+ 
+
+4.10. Write a procedure to insert details into Book_Transaction table. Procedure should
+accept the book code and staff/student code. Date of issue is current date and the
+expected return date should be 10 days from the current date. If the expected return date
+falls on Saturday or Sunday, then it should be the next working day.
+
+create or replace procedure insertrecords
+(bcode in book_transactions.book_code%type,
+code in number
+)as
+code1 number;
+exc exception;
+doe varchar2(50);
+doe1 date;
+cursor mycur1 is 
+select staff_code from staff_masters where staff_code=code;
+cursor mycur2 is 
+select student_code from student_masters where student_code=code;
+begin 
+select to_char(sysdate+10,'DAY') INTO doe FROM DUAL;
+if(doe='SATURDAY') then
+select (sysdate+12) INTO doe1 FROM DUAL;
+elsif (doe='SUNDAY')then
+select (sysdate+11) INTO doe1 FROM DUAL;
+else
+select (sysdate+10) INTO doe1 FROM DUAL;
+end if;
+open mycur1;
+open mycur2;
+loop
+fetch mycur1 into code1;
+if(mycur1%notfound and mycur1%rowcount=0) then
+fetch mycur2 into code1;
+if(mycur2%notfound and mycur2%rowcount=0) then
+raise exc;
+else
+exit when(mycur2%notfound);
+insert into book_transactions values(bcode,code1,null,sysdate,doe1,null);
+end if; 
+else
+exit when(mycur1%notfound);
+insert into book_transactions values(bcode,null,code1,sysdate,doe1,null);
+end if;
+end loop;
+exception
+when exc then
+dbms_output.put_line('not found');
+end;
+ 
+/
+show error;
+delete from  book_transactions where book_issue_date LIKE '%07-OCT-17%';
+ 
+execute insertrecords(10000007,100002);
+execute insertrecords('10000002','1015'); 
+ 
+
+4.11: Write a function named ‘get_total_records’, to pass the table name as a parameter,
+and get back the number of records that are contained in the table. Test your function
+with multiple tables
+
+CREATE OR REPLACE FUNCTION count_Row(t_name VARCHAR2)
+RETURN NUMBER IS
+countrow NUMBER;
+BEGIN
+    EXECUTE IMMEDIATE 'SELECT COUNT(*) FROM '||t_name INTO countrow;
+    dbms_output.put_line(countrow);
+    RETURN countrow;
+END;
+ 
+DECLARE
+    v_count NUMBER;
+BEGIN
+    v_count:=count_Row('staff_masters');
+END;
+/ 
+
+
+
+
+

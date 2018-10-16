@@ -1,0 +1,256 @@
+
+
+1.
+SQL> DECLARE
+  2  V_Sample1 NUMBER(2);
+  3  V_Sample2 CONSTANT NUMBER(2) ;
+  4  V_Sample3 NUMBER(2) NOT NULL ;
+  5  V_Sample4 NUMBER(2) := 50;
+  6  V_Sample5 NUMBER(2) DEFAULT 25;
+  7  /
+V_Sample5 NUMBER(2) DEFAULT 25;
+                              *
+ERROR at line 6:
+ORA-06550: line 6, column 31:
+PLS-00103: Encountered the symbol "end-of-file" when expecting one of the
+following:
+begin function pragma procedure subtype type <an identifier>
+<a double-quoted delimited-identifier> current cursor delete
+exists prior
+--------------------------------------------------------------------------
+2.
+SQL> DECLARE --outer block
+  2  var_num1 NUMBER := 5;
+  3  BEGIN
+  4  DECLARE --inner block
+  5  var_num1 NUMBER := 10;
+  6  BEGIN
+  7  DBMS_OUTPUT.PUT_LINE('Value for var_num1:' ||var_num1);
+  8  --Can outer block variable (var_num1) be printed here.If Yes,Print the same.
+  9  END;
+ 10  DBMS_OUTPUT.PUT_LINE('Value for var_num1:' ||var_num1);
+ 11  --Can inner block variable(var_num1) be printed here.If Yes,Print the same.
+ 12  END;
+ 13  /
+Value for var_num1:10
+Value for var_num1:5
+
+PL/SQL procedure successfully completed.
+
+-----------------------------------------------------------------------------
+3.
+declare 
+dept_no number(10):=&deptno;
+stcode number ;
+stname varchar2(20);
+sal number(7,2);
+i number:=0;
+
+CURSOR high is Select Staff_Code,Staff_Name,Staff_sal 
+FROM Staff_masters where Dept_code=dept_no;
+ 
+begin 
+open high;
+
+LOOP
+FETCH high into stcode,stname,sal;
+IF high%NOTFOUND
+THEN
+IF (i=0)
+THEN
+dbms_output.put_line('Wrong Department Code');
+END IF;
+EXIT;
+END IF;
+dbms_output.put_line(stcode||'  '||stname||'  '||sal);
+i:=i+1;
+END LOOP;
+CLOSE high;
+END;
+/ 
+
+------------------------------------------------------------------------------
+4.
+declare 
+v_sal number ;
+Cursor high IS Select Staff_sal FROM Staff_masters;
+ 
+begin 
+open high;
+
+LOOP
+FETCH high into v_sal;
+IF high%NOTFOUND
+THEN
+EXIT;
+END IF;
+dbms_output.put_line('salary is '||v_sal);
+IF v_sal*0.3<5000
+THEN
+v_sal:=v_sal+v_sal*0.3;
+ELSE
+v_sal:=v_sal+5000;
+END IF;
+dbms_output.put_line('Changed salary is '||v_sal);
+ 
+END LOOP;
+dbms_output.put_line('Changed salary account :'||high%rowcount);
+CLOSE high;
+END;
+/ 
+
+salary is 17000
+Changed salary is 20400
+salary is 20000
+Changed salary is 24000
+salary is 24000
+Changed salary is 28800
+salary is 20000
+Changed salary is 24000
+salary is 32000
+Changed salary is 37000
+salary is 42000
+Changed salary is 47000
+salary is 62000
+Changed salary is 67000
+salary is 18000
+Changed salary is 21600
+salary is 22000
+Changed salary is 26400
+salary is 32000
+Changed salary is 37000
+Changed salary account :10
+
+PL/SQL procedure successfully completed.
+-------------------------------------------------------------------
+5.
+declare 
+dept_no number(10):=&deptno;
+stcode number ;
+stname varchar2(100);
+sub1 number;
+sub2 number;
+sub3 number;
+total number;
+per number(10,2);
+grade varchar2(1);
+i number:=0;
+
+CURSOR high is Select m1.Student_Code,m1.Student_Name,
+m2.Subject1,m2.Subject2, m2.Subject3 
+FROM Student_masters m1 JOIN Student_Marks m2 ON m1.Student_code=m2.Student_code where m1.dept_code=dept_no;
+ 
+begin 
+open high;
+
+LOOP
+FETCH high into stcode,stname,sub1,sub2,sub3;
+IF high%NOTFOUND
+THEN
+IF (i=0)
+THEN
+dbms_output.put_line('Wrong Department Code');
+END IF;
+EXIT;
+END IF;
+total:=sub1+sub2+sub3;
+per:=total/300*100;
+
+if(sub1<60 or sub2<60 or sub3<60) then
+grade:='D';
+elsif(per>=80) then grade:='A';
+elsif(per>=70) then grade:='B';
+elsif(per>=60) then grade:='C';
+else
+grade:='D';
+END IF;
+dbms_output.put_line(stcode||'  '||stname||'  '||sub1||'  '||sub2||'  '||sub3||'  '||total||'  '||per||'  '||grade);
+i:=i+1;
+END LOOP;
+CLOSE high;
+END;
+/ 
+
+
+Enter value for deptno: 45
+old   2: dept_no number(10):=&deptno;
+new   2: dept_no number(10):=45;
+Wrong Department Code
+
+PL/SQL procedure successfully completed.
+
+
+Enter value for deptno: 10
+old   2: dept_no number(10):=&deptno;
+new   2: dept_no number(10):=10;
+1001  Amit  55  45  78  178  59.33  D
+1002  Ravi  66  74  88  228  76  B
+1008  Dev  72  55  55  182  60.67  D
+1014  Sunil  73  74  65  212  70.67  B
+1020  Amrit  45  55  65  165  55  D
+1001  Amit  68  44  92  204  68  D
+1002  Ravi  89  96  78  263  87.67  A
+1008  Dev  69  44  52  165  55  D
+1014  Sunil  65  64  90  219  73  B
+1020  Amrit  55  45  78  178  59.33  D
+
+PL/SQL procedure successfully completed.
+
+
+---------------------------------------------------------------------------------------
+6.
+declare
+  dept_no number(10):=&deptno;
+    stcode number ;
+    stname varchar2(20);
+    dcode number;
+depcode number;
+  hdate date;
+  sdob date;
+  addr varchar2(20);
+ mcode number;
+ sal number(7,2);
+ i number:=0;
+  CURSOR high is Select Staff_Code,Staff_Name,Design_code,Dept_code,HireDate,Staff_dob,Staff_address,
+ Mgr_code,Staff_sal
+ FROM Staff_masters ;
+
+ begin
+  open high;
+ 
+ LOOP
+   FETCH high into stcode,stname,dcode,depcode,hdate,sdob,addr,mcode,sal; 
+ IF high%NOTFOUND
+  THEN 
+EXIT;
+END IF;
+
+
+
+IF (depcode=dept_no)
+ THEN
+i:=i+1;
+dbms_output.put_line(stcode||'  '||stname||'  '||dcode||'  '||hdate||'  '||sdob||'  '||addr||'  '||mcode||'  '||sal);
+ELSE
+CONTINUE;
+END IF;
+
+END LOOP;
+CLOSE high;
+ IF (i=0)
+ THEN
+ dbms_output.put_line('Wrong Department Code');
+ END IF;
+END;
+/
+Enter value for deptno: 30
+old   2: dept_no number(10):=&deptno;
+new   2: dept_no number(10):=30;
+100001  ARVIND  102  15-JAN-03  15-JAN-80  Bangalore  100006  17000
+100006  Allen  103  23-APR-01  22-JAN-80  Chennai  100005  42000
+100010  Ram  103  17-JAN-02  17-JAN-79  Bangalore  100007  32000
+
+PL/SQL procedure successfully completed.
+------------------------------------------------------------
+
+
